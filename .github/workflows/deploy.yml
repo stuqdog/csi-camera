@@ -8,11 +8,11 @@ jobs:
     strategy:
      matrix:
         include:
-          # - container: ghcr.io/viam-modules/csi-camera/viam-cpp-base-jetson:0.0.8
+          # - container: ghcr.io/viam-modules/csi-camera/viam-cpp-base-jetson:latest
           #   TARGET: jetson
           #   META_PATH: meta.json
           # pi builds on the jammy base image now that debian bullseye is EOL.
-          - container: ghcr.io/viam-modules/csi-camera/viam-cpp-base-jetson:0.0.8
+          - container: ghcr.io/viam-modules/csi-camera/viam-cpp-base-jetson:latest
             TARGET: pi
             META_PATH: meta-pi.json
     container:
@@ -28,13 +28,17 @@ jobs:
           echo "TARGET=${{ matrix.TARGET }}" >> $GITHUB_ENV
           echo "META_PATH=${{ matrix.META_PATH }}" >> $GITHUB_ENV
 
+      - name: Read base image build id
+        id: baseid
+        run: echo "id=$(cat /etc/viam-base-build-id 2>/dev/null || echo unknown)" >> "$GITHUB_OUTPUT"
+
       - name: Restore Conan cache
         uses: actions/cache@v4
         with:
           path: .conan-home
-          key: ${{ runner.os }}-${{ matrix.TARGET }}-conan-${{ hashFiles('conanfile.py', 'Makefile') }}
+          key: ${{ runner.os }}-${{ matrix.TARGET }}-conan-${{ steps.baseid.outputs.id }}-${{ hashFiles('conanfile.py', 'Makefile') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.TARGET }}-conan-
+            ${{ runner.os }}-${{ matrix.TARGET }}-conan-${{ steps.baseid.outputs.id }}-
 
       - name: Clean build artifacts
         run: make clean
